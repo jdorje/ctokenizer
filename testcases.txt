@@ -1,0 +1,38 @@
+Input: "we will have 23 beautiful days"
+Expected output:
+word "we"
+word "will"
+word "have"
+decimal integer "23"
+word "beautiful"
+word "days"
+
+Input: "array[xyz] += pi 3.14159e-10"
+Expected output:
+word "array"
+array begin "["
+word "xyz"
+array end "]"
+add-and-assign "+="
+word "pi"
+floating point integer "3.14159e-10"
+
+Input: "123.323 222. 0.366 0.3 55.222a"
+Expected output:
+floating point integer "123.323"
+decimal integer "222"
+floating point integer "0.366"
+floating point integer "0.3"
+floating point integer "55.222"
+word "a"
+
+Input: "myname@email.com 0xdeadbeef 022229"
+Expected output:
+word "myname"
+bad token "@"
+word "email"
+structure member "."
+word "com"
+hexadecimal integer "0xdeadbeef"
+octal integer "02222"
+decimal integer "9"

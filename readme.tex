@@ -1,0 +1,20 @@
+\documentclass{article}
+\title{Tokenizer Readme}
+\author{James Carroll and Alex LaBrunda}
+\begin{document}
+
+\setlength{\parindent}{4em}
+\setlength{\parskip}{1em}
+\renewcommand{\baselinestretch}{2.0}
+
+\maketitle
+	Tokenizer is flexible; it tries to minimize the amount of ``bad token" outputs. For example, ``04449" is read as an octal ``0444" followed by a decimal ``9". \par
+	
+{\huge\bfseries Tradeoffs in space and time \par}
+
+	Tokenizer generally prefers faster code over slimmer code. For example, the hexadecimal check is nested within the octal check, which is nested within the decimal check; and the double-digit C operators are only sought if there is a match for a single-digit C operator, and so forth. \par
+
+	The authors did not foresee any reason to look for delimiters before tokenizer already suspects that it is being given a bad token; the definitions for words, decimal integers, etc., do not allow for delimeters to interrupt them.
+
+
+\end{document}
