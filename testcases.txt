@@ -1,5 +1,6 @@
 Input: "we will have 23 beautiful days"
 Expected output:
+
 word "we"
 word "will"
 word "have"
@@ -9,6 +10,7 @@ word "days"
 
 Input: "array[xyz] += pi 3.14159e-10"
 Expected output:
+
 word "array"
 array begin "["
 word "xyz"
@@ -19,6 +21,7 @@ floating point integer "3.14159e-10"
 
 Input: "123.323 222. 0.366 0.3 55.222a"
 Expected output:
+
 floating point integer "123.323"
 decimal integer "222"
 floating point integer "0.366"
@@ -28,6 +31,7 @@ word "a"
 
 Input: "myname@email.com 0xdeadbeef 022229"
 Expected output:
+
 word "myname"
 bad token "@"
 word "email"
@@ -36,3 +40,87 @@ word "com"
 hexadecimal integer "0xdeadbeef"
 octal integer "02222"
 decimal integer "9"
+
+Input: "This IS fuN ;)"
+Expected output:
+
+word "This"
+word "IS"
+word "fuN"
+bad token ";"
+function end ")"
+
+Input: "Du@2oouoi ***()???><><>=>><<<+=  01234567 0x000009876543 hi:)"
+Expected output:
+
+word "Du"
+bad token "@"
+decimal integer "2"
+word "oouoi"
+multiplier "*"
+multiplier "*"
+multiplier "*"
+function start "("
+function end ")"
+ternary true "?"
+ternary true "?"
+ternary true "?"
+greater than ">"
+less than "<"
+greater than ">"
+less than "<"
+greater or equal ">="
+shift right ">>"
+shift left "<<"
+less than "<"
+add-and-assign "+="
+octal integer "01234567"
+hexadecimal integer "0x000009876543"
+word "hi"
+ternary false ":"
+function end ")"
+
+Input: "<>,./?_+_{}{]['''';l;l;l;l;l;l11"
+Expected output:
+
+less than "<"
+greater than ">"
+comma operator ","
+structure member "."
+divider "/"
+ternary true "?"
+bad token "_"
+add "+"
+bad token "_{}{"
+array end "]"
+array begin "["
+bad token "'''';"
+word "l"
+bad token ";"
+word "l"
+bad token ";"
+word "l"
+bad token ";"
+word "l"
+bad token ";"
+word "l"
+bad token ";"
+word "l11"
+
+Input: "I am now g3o45ing to p3l2ay video ga0765mes fo112r the rest of the day"
+Expected output:
+
+word "I"
+word "am"
+word "now"
+word "g3o45ing"
+word "to"
+word "p3l2ay"
+word "video"
+word "ga0765mes"
+word "fo112r"
+word "the"
+word "rest"
+word "of"
+word "the"
+word "day"

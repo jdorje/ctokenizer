@@ -26,31 +26,20 @@ struct coperator_ {
 
 typedef struct coperator_ coperator;
 
-char* undefined = "undefined", *decimal = "decimal integer", *octal = "octal integer", *hex = "hexadecimal integer", *ffloat = "floating point integer", *word = "word";
+char* undefined = "undefined", *decimal = "decimal integer", *octal = "octal integer", *hex = "hexadecimal integer", *ffloat = "floating point integer", *word = "word", *keyword = "keyword", *badtoken = "bad token", *cstring = "string";
 
 				coperator singles[] = {{"*", "multiplier"}, {"/", "divider"}, {"%", "modulus"}, {"+", "add"}, {"-", "subtract"}, {"<", "less than"}, {">", "greater than"}, {"&", "bitwise and"}, {"^", "bitwise exclusive or"}, {"|", "bitwise or"}, {"?", "ternary true"}, {":", "ternary false"}, {",", "comma operator"}, {"!", "negate"}, {"~", "1's comp"}, {"(", "function start"}, {")", "function end"}, {"[", "array begin"}, {"]", "array end"}, {".", "structure member"}, {NULL, NULL}};
 
-				coperator doubles[] = {{">>", "shift right"}, {"<<", "shift left"}, {"<=", "less or equal"}, {">=", "greater or equal"}, {"==", "equals"}, {"!=", "not equals"}, {"&&", "logical and"}, {"||", "logical or"}, {"++", "inc"}, {"--", "dec"}, {"->", "structure pointer"}, {"+=", "add-and-assign"}, {"-=", "subtract-and-assign"}, {"*=", "multiply-and-assign"},{"/=", "divide-and-assign"}, {"%=", "modulus-and-assign"}, {"&=", "bitwise-and-and-assign"}, {"^=", "xor-and-assign"}, {"|=", "or-and-assign"}, {NULL, NULL}};
+				coperator doubles[] = {{">>", "shift right"}, {"<<", "shift left"}, {"<=", "less or equal"}, {">=", "greater or equal"}, {"==", "equals"}, {"!=", "not equals"}, {"&&", "logical and"}, {"||", "logical or"}, {"++", "inc"}, {"--", "dec"}, {"->", "structure pointer"}, {"+=", "add-and-assign"}, {"-=", "subtract-and-assign"}, {"*=", "multiply-and-assign"},{"/=", "divide-and-assign"}, {"%=", "modulus-and-assign"}, {"&=", "bitwise-and-and-assign"}, {"^=", "xor-and-assign"}, {"|=", "or-and-assign"}, {"/*", "begin comment block"}, {"*/", "end comment block"}, {"//", "line comment"}, {NULL, NULL}};
 
 				coperator triples[] = {{">>=", "shift-right-and-assign"}, {"<<=", "shift-left-and-assign"}, {NULL, NULL}};
 
+char* ckeywords[] = {"auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "int", "long", "register", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while"};
+
 BOOL isdelimiter(char c)
 {
-	switch(c)
-	{
-		case ' ':
-		case '\t':
-		case '\v':
-		case '\f':
-		case '\n':
-		case '\r':
-		case '\0':
-			return TRUE;
-		default:
-			return FALSE;
-	}
+	return (isspace(c) || c == '\0');
 }
-
 /*
  * TKCreate creates a new TokenizerT object for a given token stream
  * (given as a string).
@@ -103,43 +92,41 @@ BOOL ishexdigit(char c)
 		return FALSE;
 }
 
+/*
+ * operatortest takes a TokenizerT object in the process of being scanned, and two result pointers
+ * if it detects any of the hardcoded operators (up to 3 in length, e.g. ">>=", higher len prioritized)
+ * then it returns an index to a global array of strings with the particular type of C operator detected.
+ *
+ * operatortest is its own function because TKGetNextToken uses it twice: once, to output the operator detected
+ * and another time when an operator could possibly delimit the end of a bad token
+*/
 
 BOOL operatortest(int current_starting_index_of_orig, TokenizerT* tk, int* sdtresult, int* indexresult)
 {
-	int singleindex = -1;
+	int singleindex = 0;
 	char otc_orig = tk->orig[current_starting_index_of_orig];
 
-	while (TRUE) { 
-		singleindex++;
-
-		if (singles[singleindex].op == NULL) {
-			break;
-		} else if (otc_orig == singles[singleindex].op[0]) {
+	while (singles[singleindex].op != NULL) { 
+		if (otc_orig == singles[singleindex].op[0]) {
 			/* found a single and possibly a double */
-			int doubleindex = -1;
+			int doubleindex = 0;
 			char next = tk->orig[current_starting_index_of_orig+1];
-			while (TRUE) {
-				doubleindex++;
-				if (doubles[doubleindex].op == NULL) {
-					break;
-				} else if ((otc_orig == doubles[doubleindex].op[0]) && (next == doubles[doubleindex].op[1])) {
+			while (doubles[doubleindex].op != NULL) {
+				if ((otc_orig == doubles[doubleindex].op[0]) && (next == doubles[doubleindex].op[1])) {
 					/* found a double and possibly a triple */
 					
-					int tripleindex = -1;
+					int tripleindex = 0;
 					char nnext = tk->orig[current_starting_index_of_orig+2];
 				
-					while(TRUE) {  
-						tripleindex++;
-
-						if (triples[tripleindex].op == NULL) {
-							break;
-						}  else if ((otc_orig == triples[tripleindex].op[0]) && (next == triples[tripleindex].op[1]) && (nnext == triples[tripleindex].op[2])) {
+					while(triples[tripleindex].op != NULL) {  
+						if ((otc_orig == triples[tripleindex].op[0]) && (next == triples[tripleindex].op[1]) && (nnext == triples[tripleindex].op[2])) {
 							/* return triple */
 
 							*sdtresult = 3;
 							*indexresult = tripleindex;
 							return TRUE;
 						}
+						tripleindex++;
 					}
 
 					/* return double */	
@@ -147,6 +134,7 @@ BOOL operatortest(int current_starting_index_of_orig, TokenizerT* tk, int* sdtre
 					*indexresult = doubleindex;
 					return TRUE;								
 				}
+				doubleindex++;
 			}	
 				
 			/* return single */
@@ -154,6 +142,7 @@ BOOL operatortest(int current_starting_index_of_orig, TokenizerT* tk, int* sdtre
 			*indexresult = singleindex;
 			return TRUE;
 		}
+		singleindex++;
 	}
 
 	return FALSE;
@@ -188,39 +177,56 @@ char *TKGetNextToken( TokenizerT * tk ) {
 				c_orig = tk->orig[++current_index_in_token];
 			}
 			char *TheToken = malloc(tokenlen+1);
+			
 			strncpy(TheToken, &(tk->orig[token_start_index]), tokenlen);
 			TheToken[tokenlen+1] = '\0';
 				
 			tk->current_index_in_orig = current_index_in_token;
+
+			int i = 0;
+			for(;i < sizeof(ckeywords)/sizeof(ckeywords[0]); i++)
+			{
+				if (strcmp(ckeywords[i], TheToken) == 0)
+				{
+					tk->currtokentype = keyword;
+					free(TheToken);
+					tk->malloced_token = FALSE;
+					return ckeywords[i];
+				}
+			}
+
+
 			tk->currtokentype = word;
-			tk->malloced_token = TRUE; return TheToken;						
+			tk->malloced_token = TRUE; 
+			return TheToken;						
 		} else if (isdigit(c_orig)) {
 			if (c_orig == '0') {
 
 				char next = tk->orig[current_index_in_token+1];
-				/* strange corner case of ending with 0x or 0 */
 				if ((next == 'x') || (next == 'X')) {
 					/*Hex time */
+					char nnext = tk->orig[current_index_in_token+2];
+					if (ishexdigit(nnext)) {
+						int tokenlen = 2;
+						current_index_in_token += 2;
+						/* see if it exceeds length of orig, eventually */
+						c_orig = tk->orig[current_index_in_token];
 					
-					int tokenlen = 2;
-					current_index_in_token += 2;
-					/* see if it exceeds length of orig, eventually */
-					c_orig = tk->orig[current_index_in_token];
-				
-					/* gives "hexadecimal integer: 0x" it bothers me */
-					while(ishexdigit(c_orig)) {
-						tokenlen++;
-						c_orig = tk->orig[++current_index_in_token];
+						while(ishexdigit(c_orig)) {
+							tokenlen++;
+							c_orig = tk->orig[++current_index_in_token];
+						}
+
+						char* TheToken = malloc(tokenlen+1);
+										
+						strncpy(TheToken, &(tk->orig[token_start_index]), tokenlen);
+						TheToken[tokenlen+1] ='\0';
+
+						tk->current_index_in_orig = current_index_in_token;
+						tk->currtokentype = hex;
+						tk->malloced_token = TRUE; 
+						return TheToken;
 					}
-
-					char* TheToken = malloc(tokenlen+1);
-									
-					strncpy(TheToken, &(tk->orig[token_start_index]), tokenlen);
-					TheToken[tokenlen+1] ='\0';
-
-					tk->current_index_in_orig = current_index_in_token;
-					tk->currtokentype = hex;
-					tk->malloced_token = TRUE; return TheToken;
 				} else if ((next >= '0') && (next <= '7')) {
 
 					int tokenlen = 0;
@@ -237,22 +243,17 @@ char *TKGetNextToken( TokenizerT * tk ) {
 					tk->current_index_in_orig = current_index_in_token;
 					tk->currtokentype = octal;
 
-
-					tk->malloced_token = TRUE; return TheToken;
+					tk->malloced_token = TRUE; 
+					return TheToken;
 				} 
 
 			}
 
 			/* regular decimal */
-
-			/* right now the way it works is that .35 is not treated as a float */
-			/* problem with floating point that starts with 0 */
-
 			BOOL is_float = FALSE;
 
 			int tokenlen = 1;
 			current_index_in_token++;
-			/* do a bounds check? worked fine in hex */
 			c_orig = tk->orig[current_index_in_token];
 
 			while(TRUE) {
@@ -278,13 +279,22 @@ char *TKGetNextToken( TokenizerT * tk ) {
 				} else if (c_orig == 'e') {
 					if (is_float) {
 						char nnext = tk->orig[current_index_in_token+1];
+						char nnnext = tk->orig[current_index_in_token+2];
 						if (nnext == '-') {
-							tokenlen+= 2;
-							current_index_in_token += 2;
-							c_orig = tk->orig[current_index_in_token];
+							if (isdigit(nnnext)) {
+								tokenlen+= 2;
+								current_index_in_token += 2;
+								c_orig = tk->orig[current_index_in_token];
+							} else {
+								break;
+							}
 						} else {
-							tokenlen++;
-							c_orig = tk->orig[++current_index_in_token];
+							if (isdigit(nnext)) {
+								tokenlen++;
+								c_orig = tk->orig[++current_index_in_token];
+							} else {
+								break;
+							}
 						}
 						continue;
 					}
@@ -302,7 +312,8 @@ char *TKGetNextToken( TokenizerT * tk ) {
 			tk->current_index_in_orig = current_index_in_token;
 			tk->currtokentype = is_float ? ffloat : decimal;
 
-			tk->malloced_token = TRUE; return TheToken;
+			tk->malloced_token = TRUE; 
+			return TheToken;
 		} else {
 			/* operator test */
 
@@ -321,6 +332,35 @@ char *TKGetNextToken( TokenizerT * tk ) {
 						tk->currtokentype = singles[index_of_sdt].opname;
 						return singles[index_of_sdt].op;
 					case 2:
+
+						if (strcmp(doubles[index_of_sdt].op, "/*") == 0) {
+							/* block comment test */
+							char* rest_of_string = &tk->orig[current_index_in_token];
+							int i = 0, n = strlen(rest_of_string);
+							for(; i < n; i++)
+							{
+								if (strncmp(&rest_of_string[i], "*/", 2) == 0)
+								{
+									tk->current_index_in_orig += i+2;
+									return TKGetNextToken(tk);
+								}	
+							}	
+						} else if (strcmp(doubles[index_of_sdt].op, "//") == 0) {
+							/* line comment test */
+							char *rest_of_string = &tk->orig[current_index_in_token];
+							int i = 0, n = strlen(rest_of_string);
+							for(; i < n; i++)
+							{
+								if (rest_of_string[i] == '\n')
+								{
+									tk->current_index_in_orig += i+1;
+									return TKGetNextToken(tk);
+								}
+							}
+
+							return NULL;
+						}
+
 						tk->currtokentype = doubles[index_of_sdt].opname;
 						return doubles[index_of_sdt].op;
 					case 3:
@@ -333,6 +373,32 @@ char *TKGetNextToken( TokenizerT * tk ) {
 			}
 
 			/* not an operator, continue on*/
+		}
+
+		if ((c_orig == '"') || (c_orig == '\''))
+		{
+			BOOL is_double_quote = (c_orig == '"');
+			char* rest_of_string = &tk->orig[current_index_in_token];
+			int i = 1, n = strlen(rest_of_string);
+			for(; i < n; i++)
+			{
+				if ( ((rest_of_string[i] == '\'') && !is_double_quote) ||
+				     ((rest_of_string[i] == '"') && is_double_quote))
+				{
+
+					int tokenlen = (current_index_in_token+i) - token_start_index;
+					char* TheToken = malloc(tokenlen);
+					if (TheToken != NULL) {
+						strncpy(TheToken, &(tk->orig[token_start_index+1]), tokenlen-1);
+						TheToken[tokenlen] = '\0';
+
+						tk->current_index_in_orig = current_index_in_token+i+1;
+						tk->currtokentype = cstring;
+						tk->malloced_token = TRUE;
+						return TheToken;
+					}
+				}
+			}
 		}
 
 		/* looks like a bad token, which can  be stopped by a delimeter OR start of good token type */
@@ -351,7 +417,7 @@ char *TKGetNextToken( TokenizerT * tk ) {
 						TheToken[tokenlen] = '\0';
 					
 						tk->current_index_in_orig = current_index_in_token;				
-						tk->currtokentype = "bad token";
+						tk->currtokentype = badtoken;
 						tk->malloced_token = TRUE; return TheToken;
 					}	
 				} else if (tokenlen == 0) {
@@ -370,7 +436,21 @@ char *TKGetNextToken( TokenizerT * tk ) {
 
 	tk->current_index_in_orig = current_index_in_token;
 
-  return NULL;
+	
+
+  	return NULL;
+}
+
+void printbadtoken(char* bt)
+{
+	printf("%s \"%s\" [", badtoken, bt); 
+	int i = 0, n = strlen(bt);
+
+	for(;i < n; i++)
+	{
+		printf("%X", bt[i]);
+	}
+	printf("]\n");
 }
 
 /*
@@ -386,8 +466,12 @@ int main(int argc, char **argv) {
 		TokenizerT* t = TKCreate(argv[1]);
 		if (t != NULL) {
 			char *tok = TKGetNextToken(t);
-			while (tok != NULL) {		
-				printf("%s \"%s\"\n", t->currtokentype, tok); 
+			while (tok != NULL) {
+				if (strcmp(t->currtokentype, badtoken) == 0) {
+					printbadtoken(tok);
+				} else {
+					printf("%s \"%s\"\n", t->currtokentype, tok); 
+				}
 				if (t->malloced_token == TRUE) {
 					free(tok);
 					t->malloced_token = FALSE;
